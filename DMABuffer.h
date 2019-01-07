@@ -1,5 +1,5 @@
 #pragma once
-
+#include<stdlib.h>
 class DMABuffer
 {
   public:
