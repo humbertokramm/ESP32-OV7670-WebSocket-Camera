@@ -46,18 +46,31 @@ void IRAM_ATTR I2SCamera::i2sInterrupt(void* arg)
                 frame[framePointer++] = buf[i];
             }
          }
+				
     }
     
     if (blocksReceived == yres) // default yres
       {
+				static unsigned int counter = 0;
         //Serial.printf("frameBytes %d , framePointer %d, blocksReceived %d\n", frameBytes, framePointer, blocksReceived);
         framePointer = 0;
         blocksReceived = 0;
         framesReceived++;
         if(stopSignal)
         {
+					int 
           i2sStop();
           stopSignal = false;
+					if(counter == 100)
+					{
+						counter = 0;
+		        for(int i = 0; i < frameBytes; i+=2)
+		        {
+								Serial.printf("%02X%02X\t",frame[i],frame[i+1]);
+		        }
+						Serial.printf("\n");
+					}
+					else counter++;
         }
     }
    
