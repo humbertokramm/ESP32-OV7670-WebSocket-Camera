@@ -27,6 +27,7 @@ DMABuffer **I2SCamera::dmaBuffer = 0;
 unsigned char* I2SCamera::frame = 0;
 int I2SCamera::framePointer = 0;
 int I2SCamera::frameBytes = 0;
+int frameNum = 0;
 volatile bool I2SCamera::stopSignal = false;
 
 void IRAM_ATTR I2SCamera::i2sInterrupt(void* arg)
@@ -58,17 +59,17 @@ void IRAM_ATTR I2SCamera::i2sInterrupt(void* arg)
         framesReceived++;
         if(stopSignal)
         {
-					int 
           i2sStop();
           stopSignal = false;
-					if(counter == 100)
+					if(counter == 12)
 					{
 						counter = 0;
+						Serial.printf("%d [\n", frameNum++);
 		        for(int i = 0; i < frameBytes; i+=2)
 		        {
-								Serial.printf("%02X%02X\t",frame[i],frame[i+1]);
+								Serial.printf("%02X%02X\t",frame[i+1],frame[i]);
 		        }
-						Serial.printf("\n");
+						Serial.printf("\n]\n");
 					}
 					else counter++;
         }
