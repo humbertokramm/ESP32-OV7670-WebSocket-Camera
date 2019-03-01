@@ -64,7 +64,7 @@ void IRAM_ATTR I2SCamera::i2sInterrupt(void* arg)
 					if(counter == 12)
 					{
 						counter = 0;
-						Serial.printf("%d [\n", frameNum++);
+						Serial.printf("%d [\n", frameNum++); 
 		        for(int i = 0; i < frameBytes; i+=2)
 		        {
 								Serial.printf("%02X%02X\t",frame[i+1],frame[i]);
