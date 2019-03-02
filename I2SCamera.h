@@ -16,6 +16,10 @@
 #include "XClk.h"
 #include "DMABuffer.h"
 
+extern bool SendDataFrame;
+extern bool MoveMotor;
+extern bool MotorInCourse;
+
 class I2SCamera
 {
   public:

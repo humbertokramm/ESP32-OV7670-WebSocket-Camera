@@ -14,7 +14,7 @@ static const char canvas_htm[] PROGMEM = "<!-- Author : Mudassar Tamboli -->\n"\
 "    var canvas;\n"\
 "    var ctx;\n"\
 "    var imgData;\n"\
-"    var gcanvasid = \"canvas-QQ-VGA\";    \n"\
+"    var gcanvasid = \"canvas-QQQ-VGA\";    \n"\
 "    var camera_ip = \"192.168.4.1\";\n"\
 "\n"\
 "    function initWebSocket() {\n"\

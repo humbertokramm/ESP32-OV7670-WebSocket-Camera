@@ -37,6 +37,7 @@ void IRAM_ATTR I2SCamera::i2sInterrupt(void* arg)
     unsigned char* buf = dmaBuffer[dmaBufferActive]->buffer;
     dmaBufferActive = (dmaBufferActive + 1) % dmaBufferCount;
 
+    
     // 1-30, 31-60, 61-90 ..... 
     
     if (blocksReceived >= startBlock && blocksReceived <= endBlock) {
@@ -61,9 +62,12 @@ void IRAM_ATTR I2SCamera::i2sInterrupt(void* arg)
         {
           i2sStop();
           stopSignal = false;
-					if(counter == 12)
+					//if(counter == 12)
+					if(SendDataFrame)
 					{
-						counter = 0;
+					  SendDataFrame = false;
+            MoveMotor  = true;
+						//counter = 0;
 						Serial.printf("%d [\n", frameNum++); 
 		        for(int i = 0; i < frameBytes; i+=2)
 		        {
@@ -71,7 +75,7 @@ void IRAM_ATTR I2SCamera::i2sInterrupt(void* arg)
 		        }
 						Serial.printf("\n]\n");
 					}
-					else counter++;
+					//else counter++;
         }
     }
    
@@ -98,6 +102,7 @@ void I2SCamera::i2sStop()
 
 void I2SCamera::i2sRun()
 {
+
     DEBUG_PRINTLN("I2S Run");
     while (gpio_get_level(vSyncPin) == 0);
     while (gpio_get_level(vSyncPin) != 0);
@@ -240,6 +245,7 @@ bool I2SCamera::i2sInit(const int VSYNC, const int HREF, const int PCLK, const i
 
 void I2SCamera::dmaBufferInit(int bytes)
 {
+  //não é a aqui
   dmaBufferDeinit();
   
   dmaBufferCount = 2;

@@ -1,6 +1,10 @@
 
 //Author : Mudassar Tamboli
 
+bool SendDataFrame = false;
+bool MoveMotor  = true;
+bool MotorInCourse;
+
 #include "OV7670.h"
 
 #include <WebSockets.h>
@@ -23,6 +27,8 @@ const char *pwd_AP_2  = "xxxxxxxxx";
 const char *ssid_AP_3 = "XXXXXXXXX";
 const char *pwd_AP_3  = "xxxxxxxxx"; 
 
+//------------------------------------------------
+
 const int SIOD = 21; //SDA
 const int SIOC = 22; //SCL
 
@@ -35,10 +41,10 @@ const int PCLK = 33;
 const int D0 = 27;
 const int D1 = 17;
 const int D2 = 16;
-const int D3 = 15;
-const int D4 = 14;
-const int D5 = 13;
-const int D6 = 12;
+const int D3 = 15; //TD0
+const int D4 = 14; //TMS
+const int D5 = 13; //TCK
+const int D6 = 12; //TDI
 const int D7 = 4; 
 
 const int TFT_DC = 2;
@@ -46,6 +52,94 @@ const int TFT_CS = 5;
 //DIN <- MOSI 23
 //CLK <- SCK 18
 
+//------------------------------------------------
+#include <AccelStepper.h> //http://www.airspayce.com/mikem/arduino/AccelStepper/
+
+// Motor pin definitions
+const int motorPin1 = 26;     // IN1 on the ULN2003 driver 1
+const int motorPin2 = 18;    // IN2 on the ULN2003 driver 1
+const int motorPin3 = 19;   // IN3 on the ULN2003 driver 1
+const int motorPin4 = 23;     // IN4 on the ULN2003 driver 1
+//------------------------------------------------
+
+//MH-ET Live
+
+//            _________________
+//           /    __________   \
+//  GND-RST |    |          |  | 1  -GND
+//  NC - 36 |    |  ESP-32  |  | 3  - 17
+//  39 - 26 |    |          |  | 22 - 25
+//  35 - 18 |    |          |  | 21 - 32
+//  33 - 19 |    |          |  | 17 - 12
+//  34 - 23 |    |__________|  | 16 -  4
+//  14 -  5 |                  | GND-  0
+//  NC -3V3 |                  | VCC-  2
+//  9  - 13 |                  | 15 -  8
+//  11 - 10 |_                 | 7  -  6
+//            |      ___       |
+//            |_____|USB|______|
+
+//            _________________              //            _________________
+//           /                 \             //           /                 \
+//  GND-TXD |* * MH-ET Live * *| RST-GND     //  GND-  1 |* * MH-ET Live * *| RST-GND
+// .27 -RXD |* *            * *| SVP- NC     //  27 -  3 |* *            * *| 36 - NC
+//  25 - 22.|* *            * *| 26 -SVN     //  25 - 22 |* *            * *| 26 - 39
+// .32 - 21.|* *            * *| 18   35.    //  32 - 21 |* *            * *| 18   35
+// .TDI- 17.|* *            * *| 19 - 33.    //  12 - 17 |* *            * *| 19 - 33
+// .4  - 16.|* *            * *| 23 - 34.    //  4  - 16 |* *            * *| 23 - 34
+//  0  -GND |* *            * *|.5  -TMS.    //  0  -GND |* *            * *| 5  - 14
+// .2  -VCC |* *            * *| 3V3- NC     //  2  -VCC |* *            * *| 3V3- NC
+//  SD1-TD0.|* *            * *|.TCK-SD2     //  8  - 15 |* *            * *| 13 -  9
+//  CLK-SD0 |* *            * *| SD3-CMD     //  6  -  7 |* *            * *| 10 - 11
+//           \       ___       |             //           \       ___       |             
+//            |_____|USB|______|             //            |_____|USB|______|      
+
+
+
+
+//------------------------------------------------
+// Initialize with pin sequence IN1-IN3-IN2-IN4 for using the AccelStepper with 28BYJ-48
+#define HALFSTEP 8
+AccelStepper stepper1(HALFSTEP, motorPin1, motorPin3, motorPin2, motorPin4);
+#define movement  4097//*10
+//------------------------------------------------
+void setupMotor()
+{
+  stepper1.setMaxSpeed(1000.0);
+  stepper1.setAcceleration(300.0);
+  stepper1.setCurrentPosition(0);
+  stepper1.setSpeed(1000);
+  stepper1.moveTo(movement);
+}
+//------------------------------------------------
+//Change direction when the stepper reaches the target position
+//------------------------------------------------
+void runMotor()
+{
+  if(MoveMotor)
+  {
+    MoveMotor = false;
+    MotorInCourse = true;
+    stepper1.setCurrentPosition(movement);
+    stepper1.moveTo(0);
+//    Serial.println("Mandou rodar");
+  }
+  
+  if ( (stepper1.distanceToGo() == 0) && !SendDataFrame)
+  {
+    MotorInCourse = false;
+    SendDataFrame = true;
+//    Serial.println("Parou o motor");
+  }
+  /*if (stepper1.distanceToGo() == 0)
+  {
+    delay(3000);
+    stepper1.setCurrentPosition(0);
+    stepper1.moveTo(movement);
+  }*/
+  stepper1.run();
+}
+//------------------------------------------------
 #define ssid        "whiz4"
 #define password    "salvation1234"
 //#define ssid2        ""
@@ -65,19 +159,27 @@ unsigned char end_flag = 0xFF;
 unsigned char ip_flag = 0x11;
 
 WebSocketsServer webSocket(81);    // create a websocket server on port 81
+//------------------------------------------------
 
+//------------------------------------------------
 void startWebSocket() { // Start a WebSocket server
   webSocket.begin();                          // start the websocket server
   webSocket.onEvent(webSocketEvent);          // if there's an incomming websocket message, go to function 'webSocketEvent'
   Serial.println("WebSocket server started.");
 }
+//------------------------------------------------
 
+//------------------------------------------------
 void startWebServer()
 {
    server.begin();
    Serial.println("Http web server started.");
 }
-void serve() {
+//------------------------------------------------
+
+//------------------------------------------------
+void serve()
+{
   WiFiClient client = server.available();
   if (client) 
   {
@@ -117,7 +219,9 @@ void serve() {
 
   }  
 }
+//------------------------------------------------
 
+//------------------------------------------------
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t payloadlength) { // When a WebSocket message is received
  
   int blk_count = 0;
@@ -172,7 +276,8 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t payloa
 
       
       blk_count = camera->yres/I2SCamera::blockSlice;//30, 60, 120
-      for (int i=0; i<blk_count; i++) {
+      for (int i=0; i<blk_count; i++) 
+      {
 
           if (i == 0) {
               camera->startBlock = 1;
@@ -198,12 +303,16 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t payloa
 
   }
 }
+//------------------------------------------------
+
+//------------------------------------------------
 void initWifiStation() {
 
     WiFi.mode(WIFI_AP_STA);
     WiFi.begin(ssid, password);    
     Serial.print("\nConnecting to WiFi");
-    while (WiFi.status() != WL_CONNECTED) {
+    while (WiFi.status() != WL_CONNECTED) 
+    {
        delay(5000);        
        Serial.print(".");
     }
@@ -213,16 +322,18 @@ void initWifiStation() {
     Serial.println(WiFi.localIP()); 
 
 }
+//------------------------------------------------
 
+//------------------------------------------------
 void initWifiMulti()
 {
-
     wifiMulti.addAP(ssid_AP_1, pwd_AP_1);
     wifiMulti.addAP(ssid_AP_2, pwd_AP_2);
     wifiMulti.addAP(ssid_AP_3, pwd_AP_3);
 
     Serial.println("Connecting Wifi...");
-    while(wifiMulti.run() != WL_CONNECTED) {
+    while(wifiMulti.run() != WL_CONNECTED) 
+    {
        delay(5000);        
        Serial.print(".");
     }
@@ -232,31 +343,42 @@ void initWifiMulti()
     Serial.print("IP address : ");
     Serial.println(WiFi.localIP());
 }
+//------------------------------------------------
 
-void initWifiAP() {
-
+//------------------------------------------------
+void initWifiAP()
+{
     WiFi.mode(WIFI_AP_STA);
     WiFi.softAP(ap_ssid, ap_password);
     IPAddress myIP = WiFi.softAPIP();
     Serial.print("AP IP address: ");
     Serial.println(myIP);
 }
+//------------------------------------------------
 
-
-void setup() {
+//------------------------------------------------
+void setup()
+{
  // Serial.begin(115200);
   Serial.begin(1000000);
   initWifiMulti();
   initWifiAP();
   startWebSocket();
   startWebServer();
+  setupMotor();
 }
+//------------------------------------------------
 
+//------------------------------------------------
 void loop()
 {
-  webSocket.loop();
-  serve();
+  if(!MotorInCourse)
+  {
+    webSocket.loop();
+    serve();
+  }
+  runMotor();
 }
-
+//------------------------------------------------
 
 
