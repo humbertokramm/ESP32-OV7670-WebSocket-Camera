@@ -67,7 +67,7 @@ const int motorPin4 = 23;     // IN4 on the ULN2003 driver 1
 //            _________________
 //           /    __________   \
 //  GND-RST |    |          |  | 1  -GND
-//  NC - 36 |    |  ESP-32  |  | 3  - 17
+//  NC - 36 |    |  ESP-32  |  | 3  - 27
 //  39 - 26 |    |          |  | 22 - 25
 //  35 - 18 |    |          |  | 21 - 32
 //  33 - 19 |    |          |  | 17 - 12
@@ -102,13 +102,14 @@ const int motorPin4 = 23;     // IN4 on the ULN2003 driver 1
 #define HALFSTEP 8
 AccelStepper stepper1(HALFSTEP, motorPin1, motorPin3, motorPin2, motorPin4);
 #define movement  4097//*10
+#define velocity  1500
 //------------------------------------------------
 void setupMotor()
 {
-  stepper1.setMaxSpeed(1000.0);
-  stepper1.setAcceleration(300.0);
+  stepper1.setMaxSpeed(velocity);
+  stepper1.setAcceleration(500.0);
   stepper1.setCurrentPosition(0);
-  stepper1.setSpeed(1000);
+  stepper1.setSpeed(velocity);
   stepper1.moveTo(movement);
 }
 //------------------------------------------------
