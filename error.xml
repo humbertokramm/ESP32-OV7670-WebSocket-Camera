@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<results version="2">
+    <cppcheck version="1.87"/>
+    <errors>
+        <error id="noCopyConstructor" severity="style" msg="Class &amp;#039;DMABuffer&amp;#039; does not have a copy constructor which is recommended since it has dynamic memory/resource allocation(s)." verbose="Class &amp;#039;DMABuffer&amp;#039; does not have a copy constructor which is recommended since it has dynamic memory/resource allocation(s).">
+            <location file="DMABuffer.h" line="10"/>
+        </error>
+        <error id="noOperatorEq" severity="style" msg="Class &amp;#039;DMABuffer&amp;#039; does not have a operator= which is recommended since it has dynamic memory/resource allocation(s)." verbose="Class &amp;#039;DMABuffer&amp;#039; does not have a operator= which is recommended since it has dynamic memory/resource allocation(s).">
+            <location file="DMABuffer.h" line="10"/>
+        </error>
+        <error id="noExplicitConstructor" severity="style" msg="Class &amp;#039;DMABuffer&amp;#039; has a constructor with 1 argument that is not explicit." verbose="Class &amp;#039;DMABuffer&amp;#039; has a constructor with 1 argument that is not explicit. Such constructors should in general be explicit for type safety reasons. Using the explicit keyword in the constructor means some mistakes when using the class can be avoided.">
+            <location file="DMABuffer.h" line="8"/>
+        </error>
+        <error id="duplInheritedMember" severity="warning" msg="The class &amp;#039;OV7670&amp;#039; defines member variable with name &amp;#039;xres&amp;#039; also defined in its parent class &amp;#039;I2SCamera&amp;#039;." verbose="The class &amp;#039;OV7670&amp;#039; defines member variable with name &amp;#039;xres&amp;#039; also defined in its parent class &amp;#039;I2SCamera&amp;#039;.">
+            <location file="OV7670.h" line="15" info="Derived variable &amp;#039;OV7670::xres&amp;#039;"/>
+            <location file="I2SCamera.h" line="31" info="Parent variable &amp;#039;I2SCamera::xres&amp;#039;"/>
+        </error>
+        <error id="duplInheritedMember" severity="warning" msg="The class &amp;#039;OV7670&amp;#039; defines member variable with name &amp;#039;yres&amp;#039; also defined in its parent class &amp;#039;I2SCamera&amp;#039;." verbose="The class &amp;#039;OV7670&amp;#039; defines member variable with name &amp;#039;yres&amp;#039; also defined in its parent class &amp;#039;I2SCamera&amp;#039;.">
+            <location file="OV7670.h" line="15" info="Derived variable &amp;#039;OV7670::yres&amp;#039;"/>
+            <location file="I2SCamera.h" line="32" info="Parent variable &amp;#039;I2SCamera::yres&amp;#039;"/>
+        </error>
+    </errors>
+</results>

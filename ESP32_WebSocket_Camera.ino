@@ -4,7 +4,7 @@
 bool SendDataFrame = false;
 bool MoveMotor  = true;
 bool MotorInCourse;
-//int SerialFrameValues[4800];//19200];
+int SerialFrameValues[19200];
 int SerialFrameValuesType;
 
 #include "OV7670.h"
@@ -26,12 +26,12 @@ const char *pwd_AP_1  = "wz4@vslmgtc$";
 const char *ssid_AP_2 = "kramm2@148";
 const char *pwd_AP_2  = "5134992001";
 
-const char *ssid_AP_3 = "XXXXXXXXX";
-const char *pwd_AP_3  = "xxxxxxxxx"; 
+const char *ssid_AP_3 = "Gaia-Proj";
+const char *pwd_AP_3  = "G@ia3_2018"; 
 
    
 //------------------------------------------------
-
+OV7670 *camera;
 const int SIOD = 21; //SDA
 const int SIOC = 22; //SCL
 
@@ -97,86 +97,22 @@ const int motorPin4 = 23;     // IN4 on the ULN2003 driver 1
 //           \       ___       |             //           \       ___       |             
 //            |_____|USB|______|             //            |_____|USB|______|      
 
-
-
-
 //------------------------------------------------
 // Initialize with pin sequence IN1-IN3-IN2-IN4 for using the AccelStepper with 28BYJ-48
 #define HALFSTEP 8
 AccelStepper stepper1(HALFSTEP, motorPin1, motorPin3, motorPin2, motorPin4);
 #define movement  4097//*10
 #define velocity  1500
-//------------------------------------------------
-void setupMotor()
-{
-  stepper1.setMaxSpeed(velocity);
-  stepper1.setAcceleration(500.0);
-  stepper1.setCurrentPosition(0);
-  stepper1.setSpeed(velocity);
-  stepper1.moveTo(movement);
-}
-//------------------------------------------------
-//Change direction when the stepper reaches the target position
-//------------------------------------------------
-void runMotor()
-{
-  if(MoveMotor)
-  {
-    int typeFrame = 0,divisor;
-    MoveMotor = false;
-    MotorInCourse = true;
-    stepper1.setCurrentPosition(movement);
-    stepper1.moveTo(0);
-    Serial.println("Mandou rodar");
 
-    switch(SerialFrameValuesType)
-		{
-		  case 4800:
-		  //80x60
-		  typeFrame = 0;
-		  divisor = 80;
-		  break;
-		  case 19200:
-		  //160x120
-		  typeFrame = 1;
-		  divisor = 160;
-		  break;
-		  case 76800:
-		  //320x240
-		  typeFrame = 2;
-		  divisor = 320;
-		  break;
-		}
-    Serial.printf("%d [\n", typeFrame); 
-    for(int i = 0; i < SerialFrameValuesType; i++)
-    {
-				//Serial.printf("%04X\t",SerialFrameValues[i]);
-				//if(!((i+1)%divisor))Serial.printf("\n");
-    }
-    Serial.printf("\n]\n");
-  }
-  
-  if ( (stepper1.distanceToGo() == 0) && !SendDataFrame)
-  {
-    MotorInCourse = false;
-    SendDataFrame = true;
-    Serial.println("Parou o motor");
-  }
-  /*if (stepper1.distanceToGo() == 0)
-  {
-    delay(3000);
-    stepper1.setCurrentPosition(0);
-    stepper1.moveTo(movement);
-  }*/
-  stepper1.run();
-}
+
+
 //------------------------------------------------
 #define ssid        "whiz4"
 #define password    "salvation1234"
-#define ssid2        "kramm2@148"
-#define password2    "5134992001"
+#define ssid2        ""
+#define password2    ""
 
-OV7670 *camera;
+
 
 WiFiMulti wifiMulti;
 WiFiServer server(80);
@@ -376,6 +312,102 @@ void initWifiMulti()
 }
 //------------------------------------------------
 
+//------------------------------------------------
+void setupMotor()
+{
+  stepper1.setMaxSpeed(velocity);
+  stepper1.setAcceleration(500.0);
+  stepper1.setCurrentPosition(0);
+  stepper1.setSpeed(velocity);
+  stepper1.moveTo(movement);
+}
+//------------------------------------------------
+//Change direction when the stepper reaches the target position
+//------------------------------------------------
+void runMotor()
+{
+	int blk_count = 0;
+	if(MoveMotor)
+	{
+		static bool videoMode;
+		int typeFrame = 0,divisor;
+		MoveMotor = false;
+		MotorInCourse = true;
+		stepper1.setCurrentPosition(movement);
+		stepper1.moveTo(0);
+		//Serial.println("Mandou rodar");
+
+		switch(SerialFrameValuesType)
+		{
+			case 4800:
+			//80x60
+			typeFrame = 0;
+			divisor = 80;
+			break;
+			case 19200:
+			//160x120
+			typeFrame = 1;
+			divisor = 160;
+			break;
+			case 76800:
+			//320x240
+			typeFrame = 2;
+			divisor = 320;
+			break;
+		}
+		Serial.printf("%d [\n", typeFrame); 
+		for(int i = 0; i < SerialFrameValuesType; i++)
+		{
+			Serial.printf("%04X\t",SerialFrameValues[i]);
+			if(!((i+1)%divisor))Serial.printf("\n");
+		}
+		Serial.printf("\n]\n");
+		if(SerialFrameValuesType)
+		{
+			if(videoMode)
+			{
+				videoMode = false;
+				Serial.printf("canvas_QQQ_VGA");
+				webSocket.sendBIN(0, &end_flag, 1);
+				camera = new OV7670(OV7670::Mode::QQQVGA_RGB565, SIOD, SIOC, VSYNC, HREF, XCLK, PCLK, D0, D1, D2, D3, D4, D5, D6, D7);
+			}
+			else
+			{
+				videoMode = true;
+				Serial.printf("canvas_QQ_VGA");
+				webSocket.sendBIN(0, &end_flag, 1);
+				camera = new OV7670(OV7670::Mode::QQVGA_RGB565, SIOD, SIOC, VSYNC, HREF, XCLK, PCLK, D0, D1, D2, D3, D4, D5, D6, D7);
+			}
+
+
+			blk_count = camera->yres/I2SCamera::blockSlice;//30, 60, 120
+			for (int i=0; i<blk_count; i++) 
+			{
+				if (i == 0) {
+					camera->startBlock = 1;
+					camera->endBlock = I2SCamera::blockSlice;
+					webSocket.sendBIN(0, &start_flag, 1);
+				}
+
+				if (i == blk_count-1) {
+					webSocket.sendBIN(0, &end_flag, 1);
+				}
+				camera->oneFrame();
+				webSocket.sendBIN(0, camera->frame, camera->xres * I2SCamera::blockSlice * 2);
+				camera->startBlock += I2SCamera::blockSlice;
+				camera->endBlock   += I2SCamera::blockSlice;
+			}
+		}
+	}
+
+	if ( (stepper1.distanceToGo() == 0) && !SendDataFrame)
+	{
+		MotorInCourse = false;
+		SendDataFrame = true;
+		//Serial.println("Parou o motor");
+	}
+	stepper1.run();
+}
 //------------------------------------------------
 void initWifiAP()
 {
