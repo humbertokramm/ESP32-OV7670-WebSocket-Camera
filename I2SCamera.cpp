@@ -68,12 +68,22 @@ void IRAM_ATTR I2SCamera::i2sInterrupt(void* arg)
 					  SendDataFrame = false;
             MoveMotor  = true;
 						//counter = 0;
-						Serial.printf("%d [\n", frameNum++); 
+						SerialFrameValuesType = frameBytes/2;
+
+						//Serial.printf("%d [\n", frameNum++); 
 		        for(int i = 0; i < frameBytes; i+=2)
 		        {
-								Serial.printf("%02X%02X\t",frame[i+1],frame[i]);
+								//Serial.printf("%02X%02X\t",frame[i+1],frame[i]);
+								//SerialFrameValues[i/2] = (frame[i+1]<<8) + frame[i];
+								
+								//if(i%100==0)
+								//{
+								 //Serial.printf("\n");
+								  //wdt_reset();
+								  //delay(10);
+							  //}
 		        }
-						Serial.printf("\n]\n");
+						//Serial.printf("\n]\n");
 					}
 					//else counter++;
         }
@@ -152,6 +162,7 @@ bool I2SCamera::init(const int XRES, const int YRES, const int VSYNC, const int 
   frameBytes = XRES * blockSlice * 2;
 
   if (frame) {
+    //printf("teste\n");
     free (frame);
     Serial.printf("frame memory freed\n");
   }

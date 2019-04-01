@@ -4,6 +4,8 @@
 bool SendDataFrame = false;
 bool MoveMotor  = true;
 bool MotorInCourse;
+//int SerialFrameValues[4800];//19200];
+int SerialFrameValuesType;
 
 #include "OV7670.h"
 
@@ -18,15 +20,16 @@ bool MotorInCourse;
 const char *ap_ssid     = "Esp32AP";
 const char *ap_password = "thereisnospoon";
 
-const char *ssid_AP_1 = "whiz4";
-const char *pwd_AP_1  = "salvation1234";
+const char *ssid_AP_1 = "WZ4_2.4Ghz";
+const char *pwd_AP_1  = "wz4@vslmgtc$";
 
-const char *ssid_AP_2 = "XXXXXXXXX";
-const char *pwd_AP_2  = "xxxxxxxxx";
+const char *ssid_AP_2 = "kramm2@148";
+const char *pwd_AP_2  = "5134992001";
 
 const char *ssid_AP_3 = "XXXXXXXXX";
 const char *pwd_AP_3  = "xxxxxxxxx"; 
 
+   
 //------------------------------------------------
 
 const int SIOD = 21; //SDA
@@ -119,18 +122,45 @@ void runMotor()
 {
   if(MoveMotor)
   {
+    int typeFrame = 0,divisor;
     MoveMotor = false;
     MotorInCourse = true;
     stepper1.setCurrentPosition(movement);
     stepper1.moveTo(0);
-//    Serial.println("Mandou rodar");
+    Serial.println("Mandou rodar");
+
+    switch(SerialFrameValuesType)
+		{
+		  case 4800:
+		  //80x60
+		  typeFrame = 0;
+		  divisor = 80;
+		  break;
+		  case 19200:
+		  //160x120
+		  typeFrame = 1;
+		  divisor = 160;
+		  break;
+		  case 76800:
+		  //320x240
+		  typeFrame = 2;
+		  divisor = 320;
+		  break;
+		}
+    Serial.printf("%d [\n", typeFrame); 
+    for(int i = 0; i < SerialFrameValuesType; i++)
+    {
+				//Serial.printf("%04X\t",SerialFrameValues[i]);
+				//if(!((i+1)%divisor))Serial.printf("\n");
+    }
+    Serial.printf("\n]\n");
   }
   
   if ( (stepper1.distanceToGo() == 0) && !SendDataFrame)
   {
     MotorInCourse = false;
     SendDataFrame = true;
-//    Serial.println("Parou o motor");
+    Serial.println("Parou o motor");
   }
   /*if (stepper1.distanceToGo() == 0)
   {
@@ -143,8 +173,8 @@ void runMotor()
 //------------------------------------------------
 #define ssid        "whiz4"
 #define password    "salvation1234"
-//#define ssid2        ""
-//#define password2    ""
+#define ssid2        "kramm2@148"
+#define password2    "5134992001"
 
 OV7670 *camera;
 
@@ -361,7 +391,7 @@ void initWifiAP()
 void setup()
 {
  // Serial.begin(115200);
-  Serial.begin(1000000);
+  Serial.begin(2000000);
   initWifiMulti();
   initWifiAP();
   startWebSocket();
@@ -379,6 +409,7 @@ void loop()
     serve();
   }
   runMotor();
+  //delay(10);
 }
 //------------------------------------------------
 
