@@ -19,8 +19,6 @@
 extern bool SendDataFrame;
 extern bool MoveMotor;
 extern bool MotorInCourse;
-extern int  SerialFrameValues[19200];
-extern int  SerialFrameValuesType;
 
 class I2SCamera
 {

@@ -12,7 +12,7 @@ class OV7670: public I2SCamera
     QVGA_RGB565,
     VGA_RGB565,
   };
-  int xres, yres;
+  //int xres, yres;
 
   protected:
   static const int ADDR = 0x42;

@@ -4,8 +4,6 @@
 bool SendDataFrame = false;
 bool MoveMotor  = true;
 bool MotorInCourse;
-int SerialFrameValues[19200];
-int SerialFrameValuesType;
 
 #include "OV7670.h"
 
@@ -54,7 +52,7 @@ const int TFT_DC = 2;
 const int TFT_CS = 5;
 //DIN <- MOSI 23
 //CLK <- SCK 18
-
+const int ChangeFormatDelay = 2000;
 //------------------------------------------------
 #include <AccelStepper.h> //http://www.airspayce.com/mikem/arduino/AccelStepper/
 
@@ -327,57 +325,91 @@ void setupMotor()
 void runMotor()
 {
 	int blk_count = 0;
+	bool anyImage = false;
 	if(MoveMotor)
 	{
-		static bool videoMode;
-		int typeFrame = 0,divisor;
-		MoveMotor = false;
-		MotorInCourse = true;
-		stepper1.setCurrentPosition(movement);
-		stepper1.moveTo(0);
-		//Serial.println("Mandou rodar");
-
-		switch(SerialFrameValuesType)
+		static int videoMode = 0;
+		int typeFrame = 0;
+		long divisor;
+		long _frameBytes = 0;
+		_frameBytes = OV7670::frameBytes;
+		Serial.printf("\n%l\n", _frameBytes); 
+		switch(_frameBytes)
 		{
-			case 4800:
+			case 9600:
 			//80x60
 			typeFrame = 0;
-			divisor = 80;
+			divisor = 80*2;
+			//_frameBytes /= 2;
 			break;
-			case 19200:
+			
+			case 38400:
 			//160x120
 			typeFrame = 1;
-			divisor = 160;
+			divisor = 160*2;
+			//_frameBytes /= 2;
 			break;
-			case 76800:
+			
+			case 153600:
 			//320x240
 			typeFrame = 2;
-			divisor = 320;
+			divisor = 320*2;
+			 //Divide por dois, pois vem só metade do frame em  nessa resolução
+			_frameBytes /= 2;
 			break;
 		}
-		Serial.printf("%d [\n", typeFrame); 
-		for(int i = 0; i < SerialFrameValuesType; i++)
+		if(_frameBytes)
 		{
-			Serial.printf("%04X\t",SerialFrameValues[i]);
-			if(!((i+1)%divisor))Serial.printf("\n");
+			int pixel16;
+			Serial.printf("%d [\n", typeFrame); 
+			for(long i = 0; i < _frameBytes; i+=2)
+			{
+				//Monta o pixel RGB 565
+				pixel16 = (OV7670::frame[i+1]<<8) + OV7670::frame[i];
+				//Imprime o pixel
+				//Serial.printf("%04X\t",pixel16);
+				Serial.printf("0x%04X,\t",pixel16);
+				
+				//Quebra a linha de acordo com o tamanho da imagem
+				if(!((i+2)%divisor))Serial.printf("\n");
+				//Verifica se a imagem não é totalmente preta
+				if(pixel16 > 0x0040)anyImage = true;
+			}
+			Serial.printf("\n]\n");
 		}
-		Serial.printf("\n]\n");
-		if(SerialFrameValuesType)
+		if(_frameBytes && anyImage)
 		{
-			if(videoMode)
+			switch(videoMode)
 			{
-				videoMode = false;
-				Serial.printf("canvas_QQQ_VGA");
-				webSocket.sendBIN(0, &end_flag, 1);
-				camera = new OV7670(OV7670::Mode::QQQVGA_RGB565, SIOD, SIOC, VSYNC, HREF, XCLK, PCLK, D0, D1, D2, D3, D4, D5, D6, D7);
+				case 0:
+					Serial.printf("canvas_QQQ_VGA");
+					webSocket.sendBIN(0, &end_flag, 1);
+					camera = new OV7670(OV7670::Mode::QQQVGA_RGB565, SIOD, SIOC, VSYNC, HREF, XCLK, PCLK, D0, D1, D2, D3, D4, D5, D6, D7);
+					delay(ChangeFormatDelay);	//Delay para estabilizar a próxima imagem
+					
+					//Configura um novo giro
+					MoveMotor = false;
+					MotorInCourse = true;
+					stepper1.setCurrentPosition(movement);
+					stepper1.moveTo(0);
+				break;
+				
+				case 1:
+					Serial.printf("canvas_QQ_VGA");
+					webSocket.sendBIN(0, &end_flag, 1);
+					camera = new OV7670(OV7670::Mode::QQVGA_RGB565, SIOD, SIOC, VSYNC, HREF, XCLK, PCLK, D0, D1, D2, D3, D4, D5, D6, D7);
+					delay(ChangeFormatDelay);	//Delay para estabilizar a próxima imagem
+				break;
+				
+				case 2:
+					Serial.printf("canvas_Q_VGA");
+					webSocket.sendBIN(0, &end_flag, 1);
+					camera = new OV7670(OV7670::Mode::QVGA_RGB565, SIOD, SIOC, VSYNC, HREF, XCLK, PCLK, D0, D1, D2, D3, D4, D5, D6, D7);
+					delay(ChangeFormatDelay);	//Delay para estabilizar a próxima imagem
+				break;
 			}
-			else
-			{
-				videoMode = true;
-				Serial.printf("canvas_QQ_VGA");
-				webSocket.sendBIN(0, &end_flag, 1);
-				camera = new OV7670(OV7670::Mode::QQVGA_RGB565, SIOD, SIOC, VSYNC, HREF, XCLK, PCLK, D0, D1, D2, D3, D4, D5, D6, D7);
-			}
+			if(videoMode < 2) videoMode++;
+			else videoMode = 0;
 
 
 			blk_count = camera->yres/I2SCamera::blockSlice;//30, 60, 120
@@ -397,6 +429,15 @@ void runMotor()
 				camera->startBlock += I2SCamera::blockSlice;
 				camera->endBlock   += I2SCamera::blockSlice;
 			}
+		}
+		
+		if(!_frameBytes)// || anyImage)
+		{
+			MoveMotor = false;
+			MotorInCourse = true;
+			stepper1.setCurrentPosition(movement);
+			stepper1.moveTo(0);
+			//Serial.println("Mandou rodar");
 		}
 	}
 
@@ -423,7 +464,7 @@ void initWifiAP()
 void setup()
 {
  // Serial.begin(115200);
-  Serial.begin(2000000);
+  Serial.begin(1000000);
   initWifiMulti();
   initWifiAP();
   startWebSocket();

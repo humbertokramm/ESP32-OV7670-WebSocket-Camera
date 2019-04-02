@@ -48,7 +48,6 @@ void IRAM_ATTR I2SCamera::i2sInterrupt(void* arg)
                 frame[framePointer++] = buf[i];
             }
          }
-				
     }
     
     if (blocksReceived == yres) // default yres
@@ -60,35 +59,15 @@ void IRAM_ATTR I2SCamera::i2sInterrupt(void* arg)
         framesReceived++;
         if(stopSignal)
         {
-          i2sStop();
-          stopSignal = false;
-					//if(counter == 12)
-					if(SendDataFrame)
-					{
-					  SendDataFrame = false;
-            MoveMotor  = true;
-						//counter = 0;
-						SerialFrameValuesType = frameBytes/2;
-
-						//Serial.printf("%d [\n", frameNum++); 
-		        for(int i = 0; i < frameBytes; i+=2)
-		        {
-								//Serial.printf("%02X%02X\t",frame[i+1],frame[i]);
-								SerialFrameValues[i/2] = (frame[i+1]<<8) + frame[i];
-								
-								//if(i%100==0)
-								//{
-								 //Serial.printf("\n");
-								  //wdt_reset();
-								  //delay(10);
-							  //}
-		        }
-						//Serial.printf("\n]\n");
-					}
-					//else counter++;
+			i2sStop();
+			stopSignal = false;
+			if(SendDataFrame)
+			{
+				SendDataFrame = false;
+				MoveMotor  = true;
+			}
         }
     }
-   
     //    i2sStop();
 }
 
