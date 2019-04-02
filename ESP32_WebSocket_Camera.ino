@@ -331,6 +331,8 @@ void runMotor()
 		static int videoMode = 0;
 		int typeFrame = 0;
 		long divisor;
+		long startF = 0;
+		long endF;
 		long _frameBytes = 0;
 		_frameBytes = OV7670::frameBytes;
 		Serial.printf("\n%l\n", _frameBytes); 
@@ -339,36 +341,45 @@ void runMotor()
 			case 9600:
 			//80x60
 			typeFrame = 0;
+			Serial.printf("%d [\n", typeFrame); 
 			divisor = 80*2;
-			//_frameBytes /= 2;
+			startF = _frameBytes/2;
+			endF = _frameBytes;
 			break;
 			
 			case 38400:
 			//160x120
 			typeFrame = 1;
+			Serial.printf("%d [\n", typeFrame); 
 			divisor = 160*2;
-			//_frameBytes /= 2;
+			startF = _frameBytes/2;
+			endF = _frameBytes;
 			break;
 			
-			case 153600:
+			case 76800:
 			//320x240
 			typeFrame = 2;
+			Serial.printf("%d [\n", typeFrame); 
 			divisor = 320*2;
 			 //Divide por dois, pois vem só metade do frame em  nessa resolução
-			_frameBytes /= 2;
+			//_frameBytes /= 2;
+			startF = 0;
+			endF = _frameBytes;
 			break;
+
 		}
 		if(_frameBytes)
 		{
 			int pixel16;
-			Serial.printf("%d [\n", typeFrame); 
-			for(long i = 0; i < _frameBytes; i+=2)
+			
+			for(long i = startF; i < endF; i+=2)
 			{
 				//Monta o pixel RGB 565
 				pixel16 = (OV7670::frame[i+1]<<8) + OV7670::frame[i];
 				//Imprime o pixel
-				//Serial.printf("%04X\t",pixel16);
-				Serial.printf("0x%04X,\t",pixel16);
+				Serial.printf("%04X\t",pixel16);
+				//Serial.printf("0x%04X,\t",pixel16);
+				//Serial.printf("%04X\t",i);
 				
 				//Quebra a linha de acordo com o tamanho da imagem
 				if(!((i+2)%divisor))Serial.printf("\n");
