@@ -1,5 +1,4 @@
 static const char canvas_htm[] PROGMEM = "<!-- Author : Mudassar Tamboli --> 
- 
 <!DOCTYPE html> 
 <html> 
 <title> ESP32-OV7670 - Websocket Demo By Mudassar Tamboli </title> 

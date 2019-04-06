@@ -59,13 +59,13 @@ void IRAM_ATTR I2SCamera::i2sInterrupt(void* arg)
         framesReceived++;
         if(stopSignal)
         {
-			i2sStop();
-			stopSignal = false;
-			if(SendDataFrame)
-			{
-				SendDataFrame = false;
-				MoveMotor  = true;
-			}
+          i2sStop();
+          stopSignal = false;
+          if(SendDataFrame)
+          {
+	          SendDataFrame = false;
+	          MoveMotor  = true;
+          }
         }
     }
     //    i2sStop();

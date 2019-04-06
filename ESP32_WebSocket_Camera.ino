@@ -1,8 +1,9 @@
 
 //Author : Mudassar Tamboli
 
-bool SendDataFrame = false;
-bool MoveMotor  = true;
+bool SendDataFrame = true;
+bool MoveMotor  = false;
+bool StartMotor  = true;
 bool MotorInCourse;
 
 #include "OV7670.h"
@@ -203,13 +204,12 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t payloa
       Serial.printf("[%u] Disconnected!\n", num);
       break;
     case WStype_CONNECTED: {              // if a new websocket connection is established
-        IPAddress ip = webSocket.remoteIP(num);
-        Serial.printf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
-           webSocket.sendBIN(0, &ip_flag, 1);
-           localip = WiFi.localIP();
-           sprintf(ipaddr, "%d.%d.%d.%d", localip[0], localip[1], localip[2], localip[3]);
-           webSocket.sendTXT(0, (const char *)ipaddr);
-           
+		IPAddress ip = webSocket.remoteIP(num);
+		Serial.printf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
+		webSocket.sendBIN(0, &ip_flag, 1);
+		localip = WiFi.localIP();
+		sprintf(ipaddr, "%d.%d.%d.%d", localip[0], localip[1], localip[2], localip[3]);
+		webSocket.sendTXT(0, (const char *)ipaddr);  
       }
       break;
     case WStype_TEXT:                     // if new text data is received
@@ -324,18 +324,44 @@ void setupMotor()
 //------------------------------------------------
 void runMotor()
 {
+	if(!MoveMotor)return;
+	if(StartMotor)
+	{
+      StartMotor = false;
+      MotorInCourse = true;
+      stepper1.setCurrentPosition(movement);
+      stepper1.moveTo(0);
+      //Serial.println("Mandou rodar");
+	}
+   if (stepper1.distanceToGo() == 0)
+   {
+      if(MotorInCourse)
+      {
+         MotorInCourse = false;
+         //Serial.println("Parou o motor");
+		}
+      takeAPicture();
+   }
+   stepper1.run();
+}
+//------------------------------------------------
+//Change direction when the stepper reaches the target position
+//------------------------------------------------
+void takeAPicture()
+{
 	int blk_count = 0;
 	bool anyImage = false;
-	if(MoveMotor)
-	{
-		static int videoMode = 0;
+	
+   if(!MotorInCourse)
+   {
+      static int videoMode = 0;
 		int typeFrame = 0;
 		long divisor;
 		long startF = 0;
 		long endF;
 		long _frameBytes = 0;
 		_frameBytes = OV7670::frameBytes;
-		Serial.printf("\n%l\n", _frameBytes); 
+		//Serial.println("Vai tirar uma foto");
 		switch(_frameBytes)
 		{
 			case 9600:
@@ -366,6 +392,11 @@ void runMotor()
 			startF = 0;
 			endF = _frameBytes;
 			break;
+			
+			default:
+         Serial.printf("\nframe sem tamanho definido\n"); 
+         anyImage = true;
+         break;
 
 		}
 		if(_frameBytes)
@@ -388,77 +419,57 @@ void runMotor()
 			}
 			Serial.printf("\n]\n");
 		}
-		if(_frameBytes && anyImage)
+		if(anyImage)
 		{
 			switch(videoMode)
 			{
 				case 0:
-					Serial.printf("canvas_QQQ_VGA");
-					webSocket.sendBIN(0, &end_flag, 1);
-					camera = new OV7670(OV7670::Mode::QQQVGA_RGB565, SIOD, SIOC, VSYNC, HREF, XCLK, PCLK, D0, D1, D2, D3, D4, D5, D6, D7);
-					delay(ChangeFormatDelay);	//Delay para estabilizar a próxima imagem
-					
-					//Configura um novo giro
-					MoveMotor = false;
-					MotorInCourse = true;
-					stepper1.setCurrentPosition(movement);
-					stepper1.moveTo(0);
+				Serial.printf("canvas_QQQ_VGA");
+				//webSocket.sendBIN(0, &end_flag, 1);
+				camera = new OV7670(OV7670::Mode::QQQVGA_RGB565, SIOD, SIOC, VSYNC, HREF, XCLK, PCLK, D0, D1, D2, D3, D4, D5, D6, D7);
+				delay(ChangeFormatDelay);	//Delay para estabilizar a próxima imagem
 				break;
 				
 				case 1:
-					Serial.printf("canvas_QQ_VGA");
-					webSocket.sendBIN(0, &end_flag, 1);
-					camera = new OV7670(OV7670::Mode::QQVGA_RGB565, SIOD, SIOC, VSYNC, HREF, XCLK, PCLK, D0, D1, D2, D3, D4, D5, D6, D7);
-					delay(ChangeFormatDelay);	//Delay para estabilizar a próxima imagem
+				Serial.printf("canvas_QQ_VGA");
+				//webSocket.sendBIN(0, &end_flag, 1);
+				camera = new OV7670(OV7670::Mode::QQVGA_RGB565, SIOD, SIOC, VSYNC, HREF, XCLK, PCLK, D0, D1, D2, D3, D4, D5, D6, D7);
+				delay(ChangeFormatDelay);	//Delay para estabilizar a próxima imagem
 				break;
 				
 				case 2:
-					Serial.printf("canvas_Q_VGA");
-					webSocket.sendBIN(0, &end_flag, 1);
-					camera = new OV7670(OV7670::Mode::QVGA_RGB565, SIOD, SIOC, VSYNC, HREF, XCLK, PCLK, D0, D1, D2, D3, D4, D5, D6, D7);
-					delay(ChangeFormatDelay);	//Delay para estabilizar a próxima imagem
+				Serial.printf("canvas_Q_VGA");
+				//webSocket.sendBIN(0, &end_flag, 1);
+				camera = new OV7670(OV7670::Mode::QVGA_RGB565, SIOD, SIOC, VSYNC, HREF, XCLK, PCLK, D0, D1, D2, D3, D4, D5, D6, D7);
+				delay(ChangeFormatDelay);	//Delay para estabilizar a próxima imagem
 				break;
 			}
-			if(videoMode < 2) videoMode++;
-			else videoMode = 0;
-
-
 			blk_count = camera->yres/I2SCamera::blockSlice;//30, 60, 120
 			for (int i=0; i<blk_count; i++) 
 			{
 				if (i == 0) {
 					camera->startBlock = 1;
 					camera->endBlock = I2SCamera::blockSlice;
-					webSocket.sendBIN(0, &start_flag, 1);
+					//webSocket.sendBIN(0, &start_flag, 1);
 				}
 
 				if (i == blk_count-1) {
-					webSocket.sendBIN(0, &end_flag, 1);
+					//webSocket.sendBIN(0, &end_flag, 1);
 				}
 				camera->oneFrame();
-				webSocket.sendBIN(0, camera->frame, camera->xres * I2SCamera::blockSlice * 2);
+				//webSocket.sendBIN(0, camera->frame, camera->xres * I2SCamera::blockSlice * 2);
 				camera->startBlock += I2SCamera::blockSlice;
 				camera->endBlock   += I2SCamera::blockSlice;
 			}
 		}
-		
-		if(!_frameBytes)// || anyImage)
-		{
-			MoveMotor = false;
-			MotorInCourse = true;
-			stepper1.setCurrentPosition(movement);
-			stepper1.moveTo(0);
-			//Serial.println("Mandou rodar");
-		}
-	}
-
-	if ( (stepper1.distanceToGo() == 0) && !SendDataFrame)
-	{
-		MotorInCourse = false;
-		SendDataFrame = true;
-		//Serial.println("Parou o motor");
-	}
-	stepper1.run();
+	   if(videoMode == 0)
+	   {
+	      //Configura um novo giro
+		   StartMotor = true;
+	   }
+	   if(videoMode < 2) videoMode++;
+	   else videoMode = 0;
+   }
 }
 //------------------------------------------------
 void initWifiAP()
